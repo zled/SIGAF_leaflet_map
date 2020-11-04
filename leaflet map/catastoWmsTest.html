@@ -1,0 +1,267 @@
+﻿
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Catasto WMS con Leaflet</title>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v1.3.4/leaflet.css" />
+    <script src="http://cdn.leafletjs.com/leaflet/v1.3.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.5.0/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.js"></script>
+
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+
+    <script type="text/javascript">
+
+    (function () {
+        //var extent = [1554746.1124763484, 4686710.11317738, 1771653.1243634056, 4924787.538759868]; // tuscany region extents
+
+
+        var toscExtents = [[42.155259, 9.398804], [44.523927, 12.650757]],
+            toscCenter = [(toscExtents[1][0] + toscExtents[0][0]) / 2.0, (toscExtents[1][1] + toscExtents[0][1]) / 2.0];
+
+        window.addEventListener("load", initMap);
+
+        function initMap() {
+
+            var urlGeoServerArtea =  (function(){
+                        var img = document.body.appendChild(document.createElement("img"));
+                        img.src = "http://web-interno/img_home/logo_ue.jpg";
+                        if(img.complete)
+                            url = "http://192.168.60.21:8080/geoserver";
+                        else
+                            url= "http://159.213.81.199/geoserver";
+                        img = {};
+                        return url;
+                    })(),
+                    urlGeoServerArteaWMS=urlGeoServerArtea +"/ARTEA/wms",
+                    urlGeoServerArteaTms=urlGeoServerArtea + "/gwc/service/tms/1.0.0";
+
+            //http://192.168.60.21:8080/geoserver/gwc/service/tms/1.0.0/ARTEA:TOSC_Comuni/10/1080/763.png
+
+            var crs_3003 = new L.Proj.CRS(
+                "EPSG:3003",
+                "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl +towgs84=-104.1,-49.1,-9.9,0.971,-2.917,0.714,-11.68 +units=m +no_defs",
+                {
+                  //  resolutions: [8192, 4096, 2048, 1024, 512, 256, 128,
+                  //64, 32, 16, 8, 4, 2, 1, 0.5],
+                    //origin: [42.155259, 9.398804],
+                    //bounds: L.bounds(toscExtents[0], toscExtents[1])
+                }
+            );
+
+            var map =
+            L.map('map', {
+                center: toscCenter,
+                zoom: 18,
+                //minZoom:12,
+            });
+
+            map.fitBounds(toscExtents);
+
+            //var ETRS89width = toscExtents[1][1] - toscExtents[0][1];
+            //var startResolution = ETRS89width / 1024;
+            //var grid_resolution = new Array(22);
+            //for (var i = 0; i < 22; ++i) {
+            //    grid_resolution[i] = startResolution / Math.pow(2, i);
+            //}
+            //var crs_6706 = new L.Proj.CRS(
+            //    "EPSG:6706",
+            //    "+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs",
+            //    {
+            //        resolutions: grid_resolution,
+            //        origin: [0, 0],
+            //        bounds: L.bounds(toscExtents[0], toscExtents[1])
+            //    }
+            //);
+
+
+            //var ortofoto = L.tileLayer.wms("http://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms", {
+            //    layers: ['rt_ofc.5k16.32bit'],
+            //    version: "1.1.1",
+            //    styles: '',
+            //    crs: crs_3003,
+            //    format: 'image/png',
+            //    transparent: true
+            //}).addTo(map);
+
+            //var catasto = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:catastoVettIncendi@EPSG:900913@png/{z}/{x}/{-y}.png", {
+            //    layers: ['ARTEA:catastoVettIncendi'],
+            //    maxZoom: 21,
+            //    tms:true,
+            //    crs: crs_3003
+            //}).addTo(map);
+
+            ///ARTEA:TOSC_Comuni/10/1080/763.png
+
+            var particelle = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_Particelle@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                layers: ['ARTEA:TOSC_Particelle'],
+                minZoom: 5,
+                maxZoom: 21,
+                tms: true,
+                crs: crs_3003
+            }).addTo(map);
+
+            var fogli = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_BordiFoglio@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                layers: ['ARTEA:TOSC_BordiFoglio'],
+                minZoom: 5,
+                maxZoom: 21,
+                tms: true,
+                crs: crs_3003
+                   }).addTo(map);
+
+            var comuni = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_Comuni@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                layers: ['ARTEA:Tosc_Comuni'],
+                maxZoom: 21,
+                tms: true,
+                crs: crs_3003,
+                attribution: false,
+                transparent:true
+            }).addTo(map);
+
+            var OSM_basemap = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="http://osm.org/copyright" target="_blank">OpenStreetMap</a>'
+            }).addTo(map);
+
+            var mapboxOrtofoto = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+                attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+                maxZoom: 21,
+                id: 'mapbox.satellite',
+                accessToken: 'pk.eyJ1IjoiemxlZDU1IiwiYSI6ImNqdGxnMWVwbjA3dTE0OW9qNmhibjF1aDEifQ.xdbVsuJslfBtPai_Na04vw'
+            }).addTo(map);
+
+            //layers:     'rt_ofc.5k16.32bit',
+            //map:        'owsofc',
+            //FORMAT:     'image/png',
+            //VERSION:    '1.1.1',
+            //IMGTYPE:    '2',
+            //QUALITY:    '90',
+            //tiled: true
+
+            //var url = "https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php";
+
+            //var wmsLayer1 = L.tileLayer.wms(url, {
+            //    layers: ['CP.CadastralParcel'],
+            //    crs: crs_6706,
+            //    format: 'image/png',
+            //    maxZoom: 21,
+            //    transparent: true,
+            //    opacity: 0.2
+            //}).addTo(map);
+
+            //var wmsLayer2 = L.tileLayer.wms(url, {
+            //    layers: ['vestizioni'],
+            //    crs: crs_6706,
+            //    format: 'image/png',
+            //    maxZoom: 21,
+            //    transparent: true
+            //}).addTo(map);
+
+            var baseMaps = {
+            };
+            var overlayMaps = {
+                "MapBox ortofoto": mapboxOrtofoto,
+                "OpenStreet Map": OSM_basemap,
+                "comuni": comuni,
+                "fogli": fogli,
+                "particelle": particelle
+            };
+            L.control.layers(baseMaps, overlayMaps, {
+                collapsed:false
+            }).addTo(map);
+
+            scaleOptions ={
+                imperial: false
+            }
+            L.control.scale(scaleOptions).addTo(map);
+
+            var popup = L.popup({ maxWidth: 500 });
+
+            function onMapClick(e) {
+                popup
+                    .setLatLng(e.latlng)
+                    .setContent("You clicked the map at " + e.latlng.toString())
+                    .openOn(map);
+            }
+
+            map.on('click', onMapClick);
+
+            //map.on('click', function (evt) {
+            //    var coord = evt.latlng;
+            //    var gFIurl = getFeatureInfoUrl(map, wmsLayer1, coord, crs_6706);
+            //    if (gFIurl) {
+            //        var xhttp;
+            //        xhttp = new XMLHttpRequest();
+            //        xhttp.onreadystatechange = function () {
+            //            if (this.readyState == 4 && this.status == 200) {
+            //                popup
+            //                .setLatLng(coord)
+            //                .setContent(xhttp.responseText)
+            //                .openOn(map);;
+            //            }
+            //        };
+            //        //bypass cors policy
+            //        xhttp.open("GET", "https://cors-anywhere.herokuapp.com/" + gFIurl, true);
+            //        xhttp.send();
+            //    }
+            //});
+
+            // funzione che genera l'URL di una richiesta WMS GetFeatureInfo
+            //function getFeatureInfoUrl(map, layer, latlng, crs) {
+            //    var point = map.latLngToContainerPoint(latlng, map.getZoom()),
+            //        size = map.getSize(),
+            //        bounds = map.getBounds(),
+            //        sw = bounds.getSouthWest(),
+            //        ne = bounds.getNorthEast(),
+            //        sw = crs.projection._proj.forward([sw.lng, sw.lat]),
+            //        ne = crs.projection._proj.forward([ne.lng, ne.lat]);
+
+            //    var defaultParams = {
+            //        request: 'GetFeatureInfo',
+            //        service: 'WMS',
+            //        srs: layer._crs.code,
+            //        styles: '',
+            //        version: layer._wmsVersion,
+            //        format: layer.options.format,
+            //        bbox: [sw.join(','), ne.join(',')].join(','),
+            //        height: size.y,
+            //        width: size.x,
+            //        layers: layer.options.layers,
+            //        query_layers: layer.options.layers,
+            //        info_format: 'text/html'
+            //    };
+            //    params = L.Util.extend(defaultParams);
+            //    params[params.version === '1.3.0' ? 'i' : 'x'] = point.x;
+            //    params[params.version === '1.3.0' ? 'j' : 'y'] = point.y;
+
+            //    return layer._url + L.Util.getParamString(params, layer._url, true);
+            //}
+
+        }
+    })();
+
+    </script>
+    <style>
+        html, body {
+            height: 100%;
+            font-family: arial;
+            font-size: 12px;
+        }
+
+        #map {
+            height: 768px;
+            width: 1024px;
+        }
+
+        @media (max-width: 600px) {
+            .foothead, #map {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+</body>
+</html>

@@ -1,0 +1,183 @@
+﻿
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Catasto WMS con Leaflet</title>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v1.3.4/leaflet.css" />
+    <script src="http://cdn.leafletjs.com/leaflet/v1.3.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.5.0/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.js"></script>
+
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+
+    <script type="text/javascript">
+
+    (function () {
+        //var extent = [1554746.1124763484, 4686710.11317738, 1771653.1243634056, 4924787.538759868]; // tuscany region extents
+
+
+        var toscExtents = [[42.155259, 9.398804], [44.523927, 12.650757]],
+            toscCenter = [(toscExtents[1][0] + toscExtents[0][0]) / 2.0, (toscExtents[1][1] + toscExtents[0][1]) / 2.0];
+
+        window.addEventListener("load", initMap);
+
+        function initMap() {
+            var urlGeoServerArtea = "http://159.213.81.199/geoserver",
+                urlGeoServerArteaWMS = "/ARTEA/wms",
+                urlGeoServerArteaTms = "/gwc/service/tms/1.0.0",
+                //loadCounter = 0,
+                img = document.body.appendChild(document.createElement("img"));
+
+
+            img.addEventListener("error",
+                    function () {
+                        urlGeoServerArtea = "http://192.168.60.21:8080/geoserver";
+                        startWebGis();
+                    }
+            );
+
+            img.addEventListener("load",
+                    function () {
+                        startWebGis();
+                    }
+            );
+
+
+            img.src = "http://159.213.81.195/img_home/logo_ue.jpg";
+
+            function startWebGis() {
+                document.body.removeChild(img);
+                img = {};
+                var divUrl = document.body.appendChild(document.createElement("div"));
+                divUrl.textContent = urlGeoServerArtea;
+                urlGeoServerArteaWMS = urlGeoServerArtea + urlGeoServerArteaWMS;
+                urlGeoServerArteaTms = urlGeoServerArtea + urlGeoServerArteaTms;
+
+                var crs_3003 = new L.Proj.CRS(
+                    "EPSG:3003",
+                    "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl +towgs84=-104.1,-49.1,-9.9,0.971,-2.917,0.714,-11.68 +units=m +no_defs",
+                    {}
+                );
+
+                var map =
+                L.map('map', {
+                    center: toscCenter,
+                    zoom: 18,
+                    //minZoom:12,
+                });
+
+                map.fitBounds(toscExtents);
+
+                var poligoniSigaf = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_Particelle@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                    layers: ['ARTEA:TOSC_Particelle'],
+                    minZoom: 5,
+                    maxZoom: 21,
+                    tms: true,
+                    crs: crs_3003
+                }).addTo(map);
+
+                var particelle = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_Particelle@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                    layers: ['ARTEA:TOSC_Particelle'],
+                    minZoom: 5,
+                    maxZoom: 21,
+                    tms: true,
+                    crs: crs_3003
+                }).addTo(map);
+
+                var fogli = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_BordiFoglio@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                    layers: ['ARTEA:TOSC_BordiFoglio'],
+                    minZoom: 5,
+                    maxZoom: 21,
+                    tms: true,
+                    crs: crs_3003
+                }).addTo(map);
+
+                var comuni = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_Comuni@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                    layers: ['ARTEA:Tosc_Comuni'],
+                    maxZoom: 21,
+                    tms: true,
+                    crs: crs_3003,
+                    attribution: false,
+                    transparent: true
+                }).addTo(map);
+
+                var OSM_basemap = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="http://osm.org/copyright" target="_blank">OpenStreetMap</a>'
+                }).addTo(map);
+
+                var mapboxOrtofoto = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+                    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+                    maxZoom: 21,
+                    id: 'mapbox.satellite',
+                    accessToken: 'pk.eyJ1IjoiemxlZDU1IiwiYSI6ImNqdGxnMWVwbjA3dTE0OW9qNmhibjF1aDEifQ.xdbVsuJslfBtPai_Na04vw'
+                }).addTo(map);
+
+                //ARTEA:rt_ofc.5k16.32bit
+                var ortofoto2016 = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:rt_ofc.5k16.32bit@EPSG:900913@jpeg/{z}/{x}/{-y}.jpeg", {
+                    map: 'owsofc',
+                    layers: ['rt_ofc.5k16.32bit'],
+                    maxZoom: 21,
+                    tms: true,
+                    crs: crs_3003,
+                    attribution: false,
+                    transparent: true
+                }).addTo(map);
+
+                var baseMaps = {
+                    "ortofoto AGEA 2016": ortofoto2016,
+                    "MapBox ortofoto": mapboxOrtofoto,
+                    "OpenStreet Map": OSM_basemap,
+                };
+                var overlayMaps = {
+                    "comuni": comuni,
+                    "fogli": fogli,
+                    "particelle": particelle
+                };
+                L.control.layers(baseMaps, overlayMaps, {
+                    collapsed: true
+                }).addTo(map);
+
+                scaleOptions = {
+                    imperial: false
+                }
+                L.control.scale(scaleOptions).addTo(map);
+
+                var popup = L.popup({ maxWidth: 500 });
+
+                function onMapClick(e) {
+                    popup
+                        .setLatLng(e.latlng)
+                        .setContent("You clicked the map at " + e.latlng.toString())
+                        .openOn(map);
+                }
+
+                map.on('click', onMapClick);
+            }
+        }
+    })();
+
+    </script>
+    <style>
+        html, body {
+            height: 100%;
+            font-family: arial;
+            font-size: 12px;
+        }
+
+        #map {
+            height: 768px;
+            width: 1024px;
+        }
+
+        @media (max-width: 600px) {
+            .foothead, #map {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<SCRIPT LANGUAGE="VBScript" RUNAT="Server">
+<!-- METADATA NAME="Microsoft ActiveX Data Objects 2.5 Library" TYPE="TypeLib" UUID="{00000205-0000-0010-8000-00AA006D2EA4}" -->
+ 
+Sub Application_OnStart 
+  Application.Lock 
+  Application("AdminIDUtente") = "1"
+  Application("SessionDSN") = "data source=ARTEA-SQL2V8\SQL2;initial catalog=TempDB;persist security info=False;user id=ospiteWeb1;Password=ospe*1word;packet size=4096"
+  Application("CSGestop") = "Provider=SQLOLEDB;Data Source=ARTEA-SQL2V8\SQL2;Database=Gest_op;User ID=ospiteWeb1;Password=ospe*1word"
+  Application("collegati") = 0
+  Application("loggati") = 0  
+  Application("ListaCollegati") = ""
+  Application("TextColor") = "#EEEEEE"
+  Application("LabelColor") = "#BEBEBE"
+  Application("TerzoColore") = "#01080D"
+  Application("TextYellow") = "#FFC800"
+  Application("ColoreSfondo")="#FFFFFF"'"#BEBEBE"
+  Application("ColoreTab")="#BEBEBE"'"#BEBEBE"
+  Application("ColoreRigheTab")="#EEEEEE" 
+  Application("LogPagineAnagrafe") = 1
+  Application("LogPagineDomanda") = 1
+  Application.UnLock 
+End Sub 
+
+Sub Session_OnStart 
+Application.Lock 
+Application("collegati") = Application("collegati") + 1
+Application.UnLock 
+Session.LCID = 1040
+End Sub 
+
+Sub Session_OnEnd 
+Application.Lock 
+Application("collegati") = Application("collegati") - 1
+If Session("User") <> "" then
+	Application("loggati") = Application("loggati") - 1
+end if
+Application.UnLock 
+End Sub 
+
+</SCRIPT>

@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
+    <meta name=Generator content="Microsoft Word 15 (filtered)">
+<style>
+<!--
+ /* Font Definitions */
+ @font-face
+	{font-family:"Cambria Math";
+	panose-1:2 4 5 3 5 4 6 3 2 4;}
+@font-face
+	{font-family:Calibri;
+	panose-1:2 15 5 2 2 2 4 3 2 4;}
+ /* Style Definitions */
+ p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin-top:0cm;
+	margin-right:0cm;
+	margin-bottom:8.0pt;
+	margin-left:0cm;
+	line-height:107%;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif;}
+.MsoChpDefault
+	{font-family:"Calibri",sans-serif;}
+.MsoPapDefault
+	{margin-bottom:8.0pt;
+	line-height:107%;}
+@page WordSection1
+	{size:595.3pt 841.9pt;
+	margin:70.85pt 2.0cm 2.0cm 2.0cm;}
+div.WordSection1
+	{page:WordSection1;}
+    .auto-style1 {
+        text-decoration: underline;
+    }
+-->
+</style>
+
+</head>
+
+<body lang=IT>
+
+<div class=WordSection1>
+
+    <p class=MsoNormal><span class="auto-style1"><strong>esempio di filtro intersects funzionante</strong></span>:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>var testFilter = new L.Filter.Intersects('geom',
+L.polygon([L.latLng(40.712, -74.227), L.latLng(40.774, -74.125),
+L.latLng(40.734, -74.175)]), L.CRS.EPSG4326);</p>
+
+<p class=MsoNormal>testFilter.toGml() restituisce:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>                &lt;ogc:Intersects
+xmlns:ogc=&quot;http://www.opengis.net/ogc&quot;&gt;</p>
+
+<p class=MsoNormal>                               <span lang=EN-US>&lt;ogc:PropertyName&gt;ogr_geometry&lt;/ogc:PropertyName&gt;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                               &lt;gml:Polygon
+xmlns:gml=&quot;http://www.opengis.net/gml&quot; srsName=&quot;EPSG:4326&quot;
+srsDimension=&quot;2&quot;&gt;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                                               &lt;gml:exterior&gt;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                                                               &lt;gml:LinearRing
+srsDimension=&quot;2&quot;&gt;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                                                                               &lt;gml:posList&gt;-74.227
+40.712 -74.125 40.774 -74.175 40.734 -74.227 40.712&lt;/gml:posList&gt;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                                                               &lt;/gml:LinearRing&gt;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                                               &lt;/gml:exterior&gt;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                               &lt;/gml:Polygon&gt;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                </span>&lt;/ogc:Intersects&gt;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>                notare che nel formato gml i punti sono
+rappresentati come coppia di coordinate <strong>x y</strong> e non <strong>y x</strong>.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><span lang=EN-US>new L.LatLng(43.008041, 10.98843)
+restituisce: {&quot;lat&quot;:43.008041,&quot;lng&quot;:10.98843}</span></p>
+
+<p class=MsoNormal><span lang=EN-US>&nbsp;</span></p>
+
+<p class=MsoNormal><span lang=EN-US>click on wfst&nbsp; evernt handler:</span></p>
+
+<p class=MsoNormal><span lang=EN-US>&nbsp;</span></p>
+
+<p class=MsoNormal><span lang=EN-US><strong>e.layer.feature.geometry.coordinates</strong>:</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                                </span>oggetto
+contenente la geometria in coordinate geografiche originarie (nel nostro caso
+EPSG:3003) </p>
+
+<p class=MsoNormal>                                in forma di array nidificato
+con punti nel formato</p>
+
+<p class=MsoNormal>                                </p>
+
+<p class=MsoNormal>                                <strong>[</strong>float<strong> xCoordsValue, </strong>float<strong> yCoordsValue] </strong> </p>
+
+<p class=MsoNormal>                                </p>
+
+<p class=MsoNormal>                                nel nostro caso le
+coordinate saranno metriche e varranno </p>
+
+<p class=MsoNormal>                                ad esempio
+[<strong>1662084.4666343168,</strong> <strong>4763640.451062374</strong>].</p>
+
+<p class=MsoNormal>                                </p>
+
+<p class=MsoNormal><strong>e.layer._latLngs</strong>:</p>
+
+<p class=MsoNormal>                                oggetto contenente la
+geometria in coordinate geografiche </p>
+
+<p class=MsoNormal>                                in forma di array nidificato
+con punti nel formato interno di Leaflet</p>
+
+<p class=MsoNormal>                                <strong>{lat:</strong>latValue<strong>, lng:</strong>lngValue<strong>}</strong>
+che utilizza quindi la latitudine e la longitudine</p>
+
+<p class=MsoNormal>                                ma anteponendo latitudine
+(<strong>y</strong>) a longitudine (<strong>x</strong>) nel formare la coppia di coordinate.</p>
+
+<p class=MsoNormal>                                Si tratta del formato
+intermedio fra formato geografico di origine del layer </p>
+
+<p class=MsoNormal>                                e formato in coordinate
+pixel.</p>
+
+<p class=MsoNormal>                                </p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><strong>e.layers._rings</strong>: oggetto contenente la geometria in
+coordinate pixel </p>
+
+<p class=MsoNormal>                                in forma di array nidificato
+con punti nel formato</p>
+
+<p class=MsoNormal>                                </p>
+
+<p class=MsoNormal>                                {x: xPixels, y: yPixels,
+_code: 0} (non conosco _code ...)</p>
+
+<p class=MsoNormal>                                </p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>metodo <strong>L.polygon</strong></p>
+
+<p class=MsoNormal><strong>L.polygon([L.latLng(40.712, -74.227), L.latLng(40.774,
+-74.125), L.latLng(40.734, -74.175)])</strong></p>
+
+<p class=MsoNormal><span lang=EN-US>restituisce l'oggetto:</span></p>
+
+<p class=MsoNormal><span lang=EN-US>{</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                &quot;options&quot;:{},</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                &quot;_bounds&quot;:{</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                               &quot;_southWest&quot;:{&quot;lat&quot;:40.712,&quot;lng&quot;:-74.227},</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                               &quot;_northEast&quot;:{&quot;lat&quot;:40.774,&quot;lng&quot;:-74.125}</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                },</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                &quot;_latlngs&quot;:[</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                               [</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                                               {&quot;lat&quot;:40.712,&quot;lng&quot;:-74.227},</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                                               {&quot;lat&quot;:40.774,&quot;lng&quot;:-74.125},</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                                               {&quot;lat&quot;:40.734,&quot;lng&quot;:-74.175}</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                               ]</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                ],</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                &quot;_initHooksCalled&quot;:true,</span></p>
+
+<p class=MsoNormal><span lang=EN-US>                </span>&quot;_events&quot;:{</p>
+
+<p class=MsoNormal>                               &quot;add&quot;:[{}]</p>
+
+<p class=MsoNormal>                }</p>
+
+<p class=MsoNormal>}</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>StesStesso risultato lo si ottiene con:</p>
+
+<p class=MsoNormal><strong>L.polygon([{lat:40.712, lng:-74.227}, {lat:40.774,
+lng:-74.125}, {lat:40.734, lng:-74.175}])</strong></p>
+
+<p class=MsoNormal>e con:</p>
+
+<p class=MsoNormal><strong>L.polygon([[40.712, -74.227],[40.774, -74.125], [40.734,
+-74.175]])</strong></p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Notare che il poligono viene chiuso automaticamente anche
+con soli tre punti.
+
+</div>
+
+</body>
+
+</html>

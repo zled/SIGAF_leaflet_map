@@ -1,0 +1,36 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+	<meta charset="utf-8" />
+    <script type="text/javascript">
+        var xhr = new XMLHttpRequest();
+        var options=
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    options.success(xhr.responseText);
+                } else {
+                    options.error(xhr.responseText);
+                }
+                options.complete();
+            }
+        };
+        xhr.withCredentials = options.withCredentials;
+
+        var url = options.url + L.Util.getParamString(options.params, options.url);
+
+        xhr.open(options.method, url, options.async);
+        for (var header in options.headers) {
+            xhr.setRequestHeader(header, options.headers[header]);
+        }
+
+        xhr.send(options.data);
+
+
+    </script>
+</head>
+<body>
+
+</body>
+</html>

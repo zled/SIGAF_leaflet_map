@@ -1,0 +1,212 @@
+﻿<!doctype html>
+<html>
+<head>
+    <title>analisi della struttura di layers di Leaflet con plugin Leaflet.WFST e Leaflet.PM</title>
+ <meta charset="utf-8" />
+<meta name=Generator content="Microsoft Word 15 (filtered)">
+<style>
+<!--
+ /* Font Definitions */
+ @font-face
+	{font-family:Wingdings;
+	panose-1:5 0 0 0 0 0 0 0 0 0;}
+@font-face
+	{font-family:"Cambria Math";
+	panose-1:2 4 5 3 5 4 6 3 2 4;}
+@font-face
+	{font-family:Calibri;
+	panose-1:2 15 5 2 2 2 4 3 2 4;}
+ /* Style Definitions */
+ body {font-size:11.0pt; font-family:"Calibri",sans-serif;}
+ p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin-top:0cm;
+	margin-right:0cm;
+	margin-bottom:8.0pt;
+	margin-left:0cm;
+	line-height:107%;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif;}
+p.MsoCaption, li.MsoCaption, div.MsoCaption
+	{margin-top:0cm;
+	margin-right:0cm;
+	margin-bottom:10.0pt;
+	margin-left:0cm;
+	font-size:9.0pt;
+	font-family:"Calibri",sans-serif;
+	color:#44546A;
+	font-style:italic;}
+p.MsoListParagraph, li.MsoListParagraph, div.MsoListParagraph
+	{margin-top:0cm;
+	margin-right:0cm;
+	margin-bottom:8.0pt;
+	margin-left:36.0pt;
+	line-height:107%;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif;}
+p.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst, div.MsoListParagraphCxSpFirst
+	{margin-top:0cm;
+	margin-right:0cm;
+	margin-bottom:0cm;
+	margin-left:36.0pt;
+	margin-bottom:.0001pt;
+	line-height:107%;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif;}
+p.MsoListParagraphCxSpMiddle, li.MsoListParagraphCxSpMiddle, div.MsoListParagraphCxSpMiddle
+	{margin-top:0cm;
+	margin-right:0cm;
+	margin-bottom:0cm;
+	margin-left:36.0pt;
+	margin-bottom:.0001pt;
+	line-height:107%;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif;}
+p.MsoListParagraphCxSpLast, li.MsoListParagraphCxSpLast, div.MsoListParagraphCxSpLast
+	{margin-top:0cm;
+	margin-right:0cm;
+	margin-bottom:8.0pt;
+	margin-left:36.0pt;
+	line-height:107%;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif;}
+.MsoChpDefault
+	{font-family:"Calibri",sans-serif;}
+.MsoPapDefault
+	{margin-bottom:8.0pt;
+	line-height:107%;}
+@page WordSection1
+	{size:841.9pt 595.3pt;
+	margin:2.0cm 70.85pt 2.0cm 2.0cm;}
+div.WordSection1
+	{page:WordSection1;}
+ /* List Definitions */
+ ol
+	{margin-bottom:0cm;}
+ul
+	{margin-bottom:0cm;}
+-->
+</style>
+
+</head>
+
+<body lang=IT>
+
+<div class=WordSection1>
+
+<p class=MsoNormal style='margin-bottom:0cm;margin-bottom:.0001pt;line-height:
+normal'>L&apos;obiettivo di questo documento &egrave; quello di individuare dove sono
+localizzati i poligoni che disegno con Leaflet.PM. Da notare che in leaflet un
+layer &egrave; un oggetto visualizzabile sulla mappa, quindi ad esempio anche un solo
+poligono o un solo marker.</p>
+
+<p class=MsoNormal style='margin-bottom:0cm;margin-bottom:.0001pt;line-height:
+normal'>La rappresentazione dei layer quindi non segue lo schema classico del
+gis, dove un layer &egrave; un livello piano di features bidimensionali. </p>
+
+<p class=MsoNormal style='margin-bottom:0cm;margin-bottom:.0001pt;line-height:
+normal'>&nbsp;</p>
+
+<p class=MsoNormal style='margin-bottom:0cm;margin-bottom:.0001pt;line-height:
+normal'>Descrivo Il processo che seguo:</p>
+
+<p class=MsoNormal style='margin-bottom:0cm;margin-bottom:.0001pt;line-height:
+normal'>faccio click sul layer di poligoni pi&ugrave; estesi disponibili nella mappa, i <strong>comuni</strong>, selezionandone
+uno. Ottengo come risultato la selezione di un solo poligono da wfs (<em>ho impostato maxfeatures=1 nella request WFST</em>), la
+creazione di un layer wfst contenente il poligono vettoriale, la visualizzazione
+del poligono vettoriale attiva di fatto (<span style="color:red">?</span>) su tutti i livelli di zoom, la
+comparsa del popup degli attributi.</p>
+
+<p class=MsoNormal style='margin-bottom:0cm;margin-bottom:.0001pt;line-height:
+normal'>Inserisco un breack-point ad inizio handler dell&apos;evento &quot;click&quot; su mappa e
+successivamente faccio click sx dentro un poligono appena disegnato.</p>
+
+<p class=MsoNormal style='margin-bottom:0cm;margin-bottom:.0001pt;line-height:
+normal'>L&apos;evento &quot;<b>click</b>&quot; su mappa passato come parametro all&apos;handler <b>f
+</b>map.on(&quot;click,f(e{...}) permette di visualizzare l&apos;intera struttura dei layer
+con <b>e.target._layers </b>(propriet&agrave; usata internamente da Leaflet).</p>
+
+<p class=MsoNormal style='margin-bottom:0cm;margin-bottom:.0001pt;line-height:
+normal'>Nella imagine che segue, ottenuta dalla console del debugger chrome, &egrave;
+visualizzato questo oggetto e notiamo macroscopicamente la sequenza di tutti i layer
+attualmente presenti, ordinati per leaflet_id. Seguendo la catena degli oggetti
+layer, noto che ci sono diversi tipi di layers. </p>
+
+    <ul>
+        <li>
+            
+                Quelli contenenti la propriet&agrave; <strong>_url </strong>sono i tiled layers richiesti
+a geoserver con <strong>tms</strong> (<a href="https://en.wikipedia.org/wiki/Tile_Map_Service" target="tms">tile map service</a>) e provenienti da un set di tile con
+schema predefinito suddiviso in un numero limitato di livelli di zoom e salvato in cache. A ciascun livello di zoom corrisponde uno
+specifico set statico di tiles. Nell&apos;esempio noto gli id 26 poligoni sigaf, 28
+fogli, 29 comuni e 70 mappa topografica osm presa da mapBox.
+        </li>
+    </ul>
+
+<p class=MsoNormal style='margin-bottom:0cm;margin-bottom:.0001pt;line-height:
+normal'>&nbsp;</p>
+
+<div class=MsoNormal style="page-break-after:avoid"><img width=1332 height=784
+id="Immagine 1"
+src="img/image001.png"></div>
+
+<p class=MsoCaption>Figura 1 - la struttura di layers di Leaflet accessibile dall'oggetto
+evento passato alla funzione handler del click su mappa.</p>
+
+    <ul>
+        <li>
+            
+Quelli contenenti la propriet&agrave; <strong>_layers</strong> con una ulteriore lista di
+{leaflet_id: {...}} quindi layer usati come contenitori di ulteriori layers vettoriali che prendono il nome di <strong>feature_group</strong>. Ad
+esempio il layer con id <strong>339</strong>, visibile in figura sotto, contiene un gruppo di
+ulteriori 4 layers &quot;(_layers: {2874: {...}, 3783: {...}, 3972: {...}, 4819: {...}}. Questi
+id sono gi&agrave; esistenti nella propriet&agrave; _layer di livello 0 e contengono
+direttamente, nella propriet&agrave; <strong>_latlngs</strong>: [[M{lat:latValue,lng:lngValue}, ..],[...],...,[...]]
+un array di features (polygon, o multipoligon o quanto altro) composte da elementi di base (rings, linestrings o points). Ciascun elemento di base &egrave; a sua volta un array di punti nella forma M{lat:latValue,lng:lngValue}
+in coordinate geografiche latitudine, longitudine. Contengono inoltre le
+propriet&agrave; <strong>_rings</strong> e <strong>_parts,</strong> analoghe&nbsp; a <strong>_latlngs</strong>  ma contenenti soltanto gli elementi di base in forma non nested ed in coordinate schermo (da chiarire meglio la differenza fra _rings e _parts). Da notare che le coordinate schermo cambiano per una stessa feature sia per operazioni di panning che di zoom, quindi non ossono essere utilizzate per identificare una feature.
+ 
+                   </li>
+        <li>
+            Quelli contenenti la proprietà <strong>_latlngs</strong> (nested array delle coordinate in formato lat. long.) contengono direttamente una feature geometrica. Di norma questi layer dovrebbero contenere anche la proprietà <strong>feature</strong>, a sua volta contenente <strong>geometry</strong> (caratteristiche geometriche) e <strong>properties</strong> (attributi alfanumerici). La proprietà <strong>geometry</strong> contiene:<ul>
+                <li><strong>coordinates</strong>: nested array delle coordinate proiettate della feature in base al coordinate reference system (CRS) definito per il layer nella proprietà <strong>options.crs</strong>.</li>
+                <li><strong>type</strong>: tipo di feature (Polygon|Multipolygon|Linestring|Multilinestring|Point|Multipoint|Featurecollection)</li>
+            </ul>
+        </li>
+         <li>Esistono inoltre le seguenti proprietà di feature:<ul>
+            <li><strong>geometry_name</strong>: nome della colonna di tabella contenente la geometria della feature.</li>
+            <li ><strong>id</strong>: id univoco della feature generato dal Sever geografico (nel nostro caso GeoServer). L&#39;id è generato in base ad uno specifico standard e contiene il nome del layer, il separatore &#39;.&#39;, la stringa &#39;fid&#39;,il separatore &#39;-&#39;,&nbsp; l&#39;eventuale colonna di tabella univoca,&nbsp; il separatore &#39;-&#39; , una stringa di caratteri esadecimali random univoca in base alle caratteristiche geometriche della feature suddivisa in&nbsp; tre campi in base a due separatori &#39;_&#39;. L&#39;ultimo campo è una stringa random di 4&nbsp; caratteri esadecimali univoca in base alla istanza temporale di una stessa feature (<strong style="color: #FF0000">da controllare</strong>). Esempio reale: 
+                <span style="color: rgb(196, 26, 22); font-family: Consolas, &quot;Lucida Console&quot;, &quot;Courier New&quot;, monospace; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: pre; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">SIGAF_Vista_Poligoni_Attuali.fid--4d0ec2b8_16b1d5d8d7f_7e1e</span> (in questo esempio manca il campo univoco chiave di tabella che nel nostro caso ha il nome objectid).</li>
+            <li ><strong>type</strong>: tipologia di feature (Feature|FeatureCollection). Questa struttura è analoga a quella utilizzata dal sevizio Web Feature Service.</li>
+            </ul>
+        </li>
+    </ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal style='page-break-after:avoid'><img width=1365 height=369
+id="Immagine 2"
+src="img/image002.png"></p>
+
+<p class=MsoCaption>Figura 2 -&nbsp; particolare del layer 339 che raccoglie 3
+ulteriori layers di elementi geometrici.</p>
+
+<p class=MsoNormal>La figura sottostante mostra la struttura di layers presente nella pagina protoSigafEdit.html appena lanciata. Da quanto vedo penso di avere invertito l&#39;ordine dei layers definiti.</p>
+
+<p class=MsoNormal style='page-break-after:avoid'><img width=1319 height=198
+id="Immagine 3"
+src="img/image003.png"></p>
+
+<p class=MsoCaption>Figura 3 - la struttura iniziale di layers presente nella pagina
+protoSigafEdit.html non appena lanciata. I layer sono poligoni sigaf,
+particelle, fogli, Comuni, mapBox osm map, mapBox ortofoto, google map
+ortofoto, ARTEA ortofoto 2016</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+</div>
+
+</body>
+
+</html>

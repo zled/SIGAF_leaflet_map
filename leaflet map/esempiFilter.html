@@ -1,0 +1,478 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>esempi di filtri</title>
+
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v1.3.4/leaflet.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.toolbar.js/0.3.0/leaflet.toolbar.css" />
+
+    <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+    <script src="http://cdn.leafletjs.com/leaflet/v1.3.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.5.0/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.js"></script>
+    <script src="lib/leaflet.toolbar-src.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-editable/1.2.0/Leaflet.Editable.js"></script>
+    <script src="EditToolbar.js"></script>
+    <script src="dist/leaflet-wfst.src.js"></script>
+    <script src="dist/formatXML.js"></script>
+
+    <script>
+        window.addEventListener("load", initMap);
+
+        function initMap() {
+            //var urlGeoServerArtea = "http://159.213.81.199/geoserver",
+            var urlGeoServerArtea = "http://192.168.60.21:8080/geoserver",
+                urlGeoServerArteaWMS = "/ARTEA/wms",
+                urlGeoServerArteaTms = "/gwc/service/tms/1.0.0",
+                urlGeoServerWFS = '/wfs',
+                urlGeoServerWFST = '/ARTEA/ows';
+
+            urlGeoServerArteaWMS = urlGeoServerArtea + urlGeoServerArteaWMS;
+            urlGeoServerArteaTms = urlGeoServerArtea + urlGeoServerArteaTms;
+            urlGeoServerWFST = urlGeoServerArtea + urlGeoServerWFST;
+
+            //-- coordinate conversion using proj4.js
+
+            function coordConvert(sourceSrs, destSrs, aCoords) {
+                /*
+                sourceSRS   source      SRS as string      (example 'EPSG:4326')
+                destSRS     destination SRS as string      (example 'EPSG:3003')
+                aCoords     point coords couple to convert (example [1664156.618893799, 4800532.900722283])
+                returns     converted point as {"x": xValue, "y": yValue}
+                */
+                var obSource = new proj4.Proj(sourceSrs),
+                    obDest = new proj4.Proj(destSrs),
+                    obResult = new proj4.toPoint(aCoords);
+                return proj4(obSource, obDest, obResult);
+            }
+
+            //-- add CRS Gauss Boaga est fuse 
+
+            var crs_3003 = new L.Proj.CRS(
+                "EPSG:3003",
+                "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl +towgs84=-104.1,-49.1,-9.9,0.971,-2.917,0.714,-11.68 +units=m +no_defs",
+                {}
+            );
+
+            var toscExtents3003 = [[1554746.1124763484, 4686710.11317738], [1771653.1243634056, 4924787.538759868]], // tuscany region extents in EPSG:3003 SRS
+                toscCenter3003 = [1664150, 4800530], // tuscany region extents center in EPSG:3003 SRS
+                toscExtents = [[42.155259, 9.398804], [44.523927, 12.650757]],
+                toscCenter = [(toscExtents[1][0] + toscExtents[0][0]) / 2.0, (toscExtents[1][1] + toscExtents[0][1]) / 2.0];
+
+
+            var map =
+            L.map('map', {
+                center: toscCenter,
+                zoom: 8,
+                minZoom: 8,
+                maxZoom: 21
+            });
+
+            map.fitBounds(toscExtents);
+
+            // -- buid a test point now with bottom,left corner at the top,right corner of tuscany extents and 0.1 m x 0.1 m size
+
+            var testLatLngMin = coordConvert('EPSG:3003', 'EPSG:4326', [toscExtents3003[1][0], toscExtents3003[1][1]]),              //coordConvert('EPSG:3003', 'EPSG:4326', [1664150, 4800530]),
+                testLatLngMax = coordConvert('EPSG:3003', 'EPSG:4326', [toscExtents3003[1][0] + 0.1, toscExtents3003[1][1] + 0.1]);  //coordConvert('EPSG:3003', 'EPSG:4326', [1664150.1, 4800530.1]);
+
+            // -- building of an object with wfst layer options and wfst filter. wfst filter is inserted into wst layers options filter property when layer is builded.
+
+            var objWfst = {
+                options: {
+                    url: urlGeoServerWFST,
+                    maxZoom: 12,
+                    typeNS: '',
+                    typeName: '',
+                    crs: crs_3003,//L.CRS.EPSG900913,
+                    maxFeatures: 1,
+                    geometryField: 'geom',
+                    filter: null,
+                    style: {
+                        color: 'rgb(128,128,64,0.3)',
+                        weight: 0
+                    }
+                },
+                filter: new L.Filter.BBox('geom', L.latLngBounds(L.latLng(testLatLngMin.y, testLatLngMin.x), L.latLng(testLatLngMax.y, testLatLngMax.x)), crs_3003)
+            };
+
+            // --  function to create a wfst layer from options object and filter object
+
+            function wfstLayerCreate(objOptions, objFilter, minZoom, maxZoom, nameSpace, layerName) {
+                objOptions.filter = objFilter;
+                objOptions.minZoom = minZoom;
+                objOptions.maxZoom = maxZoom;
+                objOptions.typeNS = nameSpace;
+                objOptions.typeName = layerName;
+                var objLayer = new L.WFST(objOptions, new L.Format.GeoJSON({ crs: crs_3003 })); //crs: L.CRS.EPSG900913
+                return objLayer
+            }
+
+            // -- create array [{layerName1:objLayer1},{layerName2:objLayer2},...,{layerNameN:objLayerN}] 
+            //    with wfst layers contained in properties with name equal to layer name, 
+            //    ordered by increasing layer level
+
+            var objLayersWfst = [{ TOSC_Comuni: null, minZoom: null, maxZoom: null },
+                                 { TOSC_BordiFoglio: null, minZoom: null, maxZoom: null },
+                                 { SIGAF_Vista_Poligoni_Attuali: null, minZoom: null, maxZoom: null }
+            ];
+
+            var poligoniSigaf = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:SIGAF_Vista_Poligoni_Attuali@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                layers: ['ARTEA:SIGAF_Vista_Poligoni_Attuali'],
+                minZoom: 15,
+                maxZoom: 21,
+                tms: true,
+                crs: crs_3003,
+                updateWhenIdle: true
+            }).addTo(map);
+
+            objLayersWfst[2].minZoom = poligoniSigaf.options.minZoom;
+            objLayersWfst[2].maxZoom = poligoniSigaf.options.maxZoom;
+
+            // -- by now this layer does not work in wfst (it's an sql view with union 
+            //    and must be substituted with a layer group.
+
+            var particelle = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_Particelle@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                layers: ['ARTEA:TOSC_Particelle'],
+                minZoom: 17,
+                maxZoom: 21,
+                tms: true,
+                crs: crs_3003,
+                updateWhenIdle: true
+            }).addTo(map);
+
+            var fogli = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_BordiFoglio@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                layers: ['ARTEA:TOSC_BordiFoglio'],
+                minZoom: 14,
+                maxZoom: 16,
+                tms: true,
+                crs: crs_3003,
+                //updateWhenIdle: true
+            }).addTo(map);
+
+            objLayersWfst[1].minZoom = fogli.options.minZoom;
+            objLayersWfst[1].maxZoom = fogli.options.maxZoom;
+
+            var comuni = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:TOSC_Comuni@EPSG:900913@png/{z}/{x}/{-y}.png", {
+                layers: ['ARTEA:TOSC_Comuni'],
+                maxZoom: 12,
+                tms: true,
+                crs: crs_3003,
+                attribution: false,
+                transparent: true,
+                updateWhenIdle: true
+            }).addTo(map);
+
+            objLayersWfst[0].minZoom = comuni.options.minZoom;
+            objLayersWfst[0].maxZoom = comuni.options.maxZoom;
+
+            // -- create wfst layers from options and filter and manages click on layer for identifying features properties
+
+            for (var k = 0; k < objLayersWfst.length; k++) {
+                for (var kk in objLayersWfst[k]) {
+                    if (kk.indexOf("Zoom") < 0) {
+                        objLayersWfst[k][kk] = wfstLayerCreate(objWfst.options, objWfst.filter, objLayersWfst[k].minZoom, objLayersWfst[k].maxZoom, "ARTEA", kk).addTo(map);
+                        objLayersWfst[k][kk].on('click', wfstClick);
+                    }
+                }
+            }
+
+            var OSM_basemap = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="http://osm.org/copyright" target="_blank">OpenStreetMap</a>',
+                maxZoom: 21
+            }).addTo(map);
+
+            var mapboxOrtofoto = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+                attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+                minZoom: 14,
+                maxZoom: 21,
+                id: 'mapbox.satellite',
+                accessToken: 'pk.eyJ1IjoiemxlZDU1IiwiYSI6ImNqdGxnMWVwbjA3dTE0OW9qNmhibjF1aDEifQ.xdbVsuJslfBtPai_Na04vw',
+                //updateWhenIdle: true
+            }).addTo(map);
+
+            var googleMap = L.tileLayer('http://www.google.cn/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}', {
+                attribution: 'google',
+                minZoom: 14,
+                maxZoom: 21,
+                //updateWhenIdle: true
+            }).addTo(map);
+
+            //ARTEA:rt_ofc.5k16.32bit
+            var ortofoto2016 = L.tileLayer(urlGeoServerArteaTms + "/ARTEA:rt_ofc.5k16.32bit@EPSG:900913@jpeg/{z}/{x}/{-y}.jpeg", {
+                map: 'owsofc',
+                layers: ['rt_ofc.5k16.32bit'],
+                minZoom: 16,
+                maxZoom: 21,
+                tms: true,
+                crs: crs_3003,
+                attribution: 'AGEA|OFC 2016 5k',
+                transparent: true,
+                //updateWhenIdle: true
+            }).addTo(map);
+
+            var baseMaps = {
+                "ortofoto AGEA 2016": ortofoto2016,
+                "Google": googleMap,
+                "MapBox ortofoto": mapboxOrtofoto,
+                "OpenStreet Map": OSM_basemap,
+            };
+            var overlayMaps = {
+                "comuni": comuni,
+                "fogli": fogli,
+                "particelle": particelle,
+                "poligoni SIGAF": poligoniSigaf
+            };
+            L.control.layers(baseMaps, overlayMaps, {
+                collapsed: true
+            }).addTo(map);
+
+            function meterWidthInPixels() {
+                var px;
+                var div = document.createElement("div");
+                div.style.cssText = "position: absolute;  left: -100%;  top: -100%;  width: 100cm;";
+                document.body.appendChild(div);
+                var px = div.offsetWidth;
+                document.body.removeChild(div);
+                return px;
+            }
+            function getScaleFromScaleControl(scaleControl) {
+                var pxStringWidth = scaleControl._mScale.style.width,
+                    widthString = scaleControl._mScale.innerHTML,
+                    width = widthString.endsWith("km") ? parseInt(widthString) * 1000 : parseInt(widthString),
+                    pxWidth = parseInt(pxStringWidth);
+                return width * meterWidthInPixels() / pxWidth;
+            }
+
+
+            // -- manages click on wfst layer feature for showing feature attributes
+
+            var aEventPath = [],
+                popup = L.popup({ maxWidth: 500 });
+
+            function wfstClick(e) {
+                aEventPath.push(e.propagatedFrom.feature.id);
+                var div = L.DomUtil.create('div');
+                div.className = 'AttribInfoDiv';
+                var d1 = L.DomUtil.create("div", "AttribInfoLabel", div),
+                    d2 = L.DomUtil.create("div", "AttribInfoValue", div),
+                    r1, r2;
+                for (var k in e.layer.feature.properties) {
+                    r1 = L.DomUtil.create("div", "rowAttribInfoLabel", d1);
+                    r2 = L.DomUtil.create("div", "rowAttribInfoValue", d2);
+                    r1.textContent = k;
+                    r2.innerHTML = String(e.layer.feature.properties[k]).trim().length == 0 ? "&nbsp;" : e.layer.feature.properties[k];
+                }
+                popup
+                  .setLatLng(e.latlng)
+                  .setContent(div)
+                  .openOn(map);
+            }
+
+            // -- manages click on map (bubbling after click on wfst layer)
+
+            function onMapClick(e) {
+                var currentZoom = map.getZoom();
+
+                if (aEventPath.length > 0) {
+                    aEventPath = [];
+                    return
+                }
+                var clickLatLngMin3003 = coordConvert('EPSG:4326', 'EPSG:3003', [e.latlng.lng, e.latlng.lat]),
+                    clickLatLngMax = coordConvert('EPSG:3003', 'EPSG:4326', [clickLatLngMin3003.x + 0.1, clickLatLngMin3003.y + 0.1]),
+                    filter = new L.Filter.BBox('geom',
+                    L.latLngBounds(L.latLng(e.latlng.lat, e.latlng.lng),
+                    L.latLng(clickLatLngMax.y, clickLatLngMax.x)),
+                    crs_3003),
+                    //filter = new L.Filter.Intersects('geom', L.polygon([L.latLng(e.latlng.lat,e.latlng.lng),L.latLng(e.latlng.lat,clickLatLngMax.x),L.latLng(clickLatLngMax.y,clickLatLngMax.x),L.latLng(clickLatLngMax.y, e.latlng.lng)]), crs_3003),
+                    layerCreated = false;
+
+                for (var k = objLayersWfst.length - 1; k >= 0; k--) {
+                    for (var kk in objLayersWfst[k]) {
+                        if (kk.indexOf("Zoom") < 0) {
+                            map.removeLayer(objLayersWfst[k][kk]);
+                            if (currentZoom <= objLayersWfst[k].maxZoom && currentZoom >= objLayersWfst[k].minZoom) {
+                                if (!layerCreated) {
+                                    objLayersWfst[k][kk] = wfstLayerCreate(objWfst.options, filter, objLayersWfst[k].minZoom, objLayersWfst[k].maxZoom, "ARTEA", kk).addTo(map);
+                                    objLayersWfst[k][kk].on('click', wfstClick);
+                                    layerCreated = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // -- connect click on map event handler
+
+            map.on('click', onMapClick);
+
+            // -- build custom control displaying current zoom and scale
+
+            L.Control.zoomAndScaleInfo = L.Control.extend({
+                _zoom: null,
+                _scale: null,
+                _zoomValue: null,
+                _scaleValue: null,
+                setZoomAndScale: function () {
+                    // -- event handler for zoomend map event
+                    this._zoom = map.getZoom();
+                    this._zoomValue.textContent = String(this._zoom);
+                    this._scale = (!!scaleControl ? parseInt(getScaleFromScaleControl(scaleControl)) : null);
+                    this._scaleValue.textContent = String((this._scale == null ? "" : this._scale));
+                },
+                onAdd: function (map) {
+                    var div = L.DomUtil.create('div');
+                    div.className = 'leaflet-control-scale-line';
+                    //div.style.cssText = "width:150px";
+                    var aLabels = {
+                        _zoomValue: "zoom",
+                        _scaleValue: "scala"
+                    },
+                    d1;
+                    for (var k in aLabels) {
+                        d1 = L.DomUtil.create("div", "ScaleInfoLabel", div);
+                        this[k] = L.DomUtil.create("div", "ScaleInfoValue", div);
+                        d1.textContent = aLabels[k];
+                        L.DomUtil.create("br", "", div);
+                    }
+                    this.setZoomAndScale();
+                    return div;
+                },
+
+                onRemove: function (map) {
+                    // Nothing to do here
+                }
+            });
+
+            // -- build new instance of custom zoomAndScaleInfo control with opts options
+
+            L.control.zoomAndScaleInfo = function (opts) {
+                return new L.Control.zoomAndScaleInfo(opts);
+            }
+
+            // -- adds custom zoomAndScaleInfo control to map with opts options
+
+            var zoomAndScaleInfo = L.control.zoomAndScaleInfo({ position: 'bottomleft' }).addTo(map);
+
+            // -- adds scale control to map with with scaleOptions options
+
+            var scaleOptions = { imperial: false };
+            var scaleControl = L.control.scale(scaleOptions).addTo(map);
+
+            // -- connect zoomend LEaflet event to event handler
+
+            map.on('zoomend', function (e) {
+                zoomAndScaleInfo.setZoomAndScale();
+            });
+
+            scaleControl._container.style.marginLeft = "10px";
+
+/*-----------------------------------------------------------------------------------------------------
+filter examples
+-----------------------------------------------------------------------------------------------------*/
+
+            // -- filter with two or more condictions in logical AND
+
+            function filterAnd(){
+                var bbox = new L.Filter.BBox('geom', map.getBounds(), crs_3003),
+                    PropertyIsEqualTo = new L.Filter.EQ('foglio', 'D6120120'),
+                    filterAnd = new L.Filter.And(bbox, PropertyIsEqualTo);
+                return filterAnd
+            }
+
+            function makeTitle(title){
+                title = String(title);
+                return "\n\n" + title + "\n" +
+                "-".repeat(title.length) + "\n\n"
+            };
+
+            var aFilters = ["filterAnd"];
+
+            for (var k = 0; k < aFilters.length; k++) {
+                document.getElementById("messages").textContent += makeTitle("JS code") +
+                eval(aFilters[k] + ".toString()") + makeTitle("OGC format Result");
+                document.getElementById("messages").textContent += formatXml(filterAnd().toGml().outerHTML);
+            }
+        }
+    </script>
+    <style>
+        html, body {
+            height: 100%;
+            font-family: arial;
+            font-size: 12px;
+        }
+
+        #map {
+            height: 768px;
+            width: 1024px;
+        }
+
+        @media (max-width: 600px) {
+            .foothead, #map {
+                width: 100%;
+            }
+        }
+
+        div.ScaleInfoLabel {
+            display: inline-block;
+            width: 50px;
+            text-align: right;
+            margin-bottom: 2px;
+            color: blue;
+            padding-right: 3px;
+            background-color: rgba(51, 159, 163, 0.52);
+        }
+
+        div.ScaleInfoValue {
+            display: inline-block;
+            width: 50px;
+            margin-bottom: 2px;
+            color: red;
+            background-color: rgba(242, 232, 170, 0.50);
+        }
+
+        div.AttribInfoLabel {
+            display: inline-block;
+        }
+
+        div.AttribInfoValue {
+            display: inline-block;
+        }
+
+        div.rowAttribInfoLabel {
+            text-align: right;
+            background-color: rgba(51, 159, 163, 0.52);
+            color: blue;
+            margin-bottom: 2px;
+            padding-right: 3px;
+        }
+
+        div.rowAttribInfoValue {
+            color: red;
+            background-color: rgba(242, 232, 170, 0.50);
+            margin-bottom: 2px;
+        }
+
+        .AttribInfoDiv {
+            border: 2px solid #777;
+            line-height: 1.1;
+            padding: 2px 5px 1px;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            background: #fff;
+            background: rgba(255, 255, 255, 0.5);
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <pre id="messages"></pre>
+</body>
+</html>

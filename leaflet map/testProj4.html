@@ -1,0 +1,375 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>test libreria proj4.js di conversione coordinate geografiche</title>
+	<meta charset="utf-8" />
+    <script src="http://cdn.leafletjs.com/leaflet/v1.3.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.5.0/proj4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.2/proj4leaflet.js"></script>
+
+    <script>
+        (function () {
+            window.addEventListener("load", whenLoaded);
+
+            // -- declare the additional projection for local projection Gauss Boaga western zone
+
+            proj4.defs("EPSG:3003",
+                "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl +towgs84=-104.1,-49.1,-9.9,0.971,-2.917,0.714,-11.68 +units=m +no_defs"
+            );
+
+
+            /*---------------------------------------------------------------- 
+            -- add CRS Gauss Boaga west fuse using proj4Leaflet library
+               note that I added a new L.CRS.EPSG3003 object to L.CRS 
+               because this does not interfers with other Leaflet Library 
+               objects. L.CRS just contains predefined onjects:
+               Earth, EPSG3395, PSG3857, EPSG900913, EPSG4326, Simple
+            ----------------------------------------------------------------*/
+            L.CRS.EPSG3003 = new L.Proj.CRS(
+                "EPSG:3003",
+                "+proj=tmerc +lat_0=0 +lon_0=9 +k=0.9996 +x_0=1500000 +y_0=0 +ellps=intl +towgs84=-104.1,-49.1,-9.9,0.971,-2.917,0.714,-11.68 +units=m +no_defs",
+                {}
+            );
+
+            function whenLoaded() {
+                var toscExtents3003 = [
+                        [1554746.1124763484, 4686710.11317738],
+                        [1771653.1243634056, 4924787.538759868]
+                ],                                                  // tuscany region extents in EPSG:3003 SRS
+                    toscCenter3003 = [
+                        (toscExtents3003[1][0] + toscExtents3003[0][0]) / 2.0,
+                        (toscExtents3003[1][1] + toscExtents3003[0][1]) / 2.0
+                    ],                                                  // tuscany region extents center in EPSG:3003 SRS
+                    toscExtents = [
+                        [42.155259, 9.398804],
+                        [44.523927, 12.650757]],
+                    toscCenter = [
+                        (toscExtents[1][0] + toscExtents[0][0]) / 2.0,
+                        (toscExtents[1][1] + toscExtents[0][1]) / 2.0
+                    ];
+                //-- coordinate conversion test (check proj4Leaflet existing functions...)
+
+                //var obSource = new proj4.Proj('EPSG:4326'),
+                //    obDest = new proj4.Proj('EPSG:3003'),
+                //    obResult = new proj4.toPoint([toscCenter[1],toscCenter[0]]);
+                //alert(JSON.stringify(proj4(obSource, obDest, obResult)));
+
+                //-- coordinate conversion using proj4.js
+
+                function coordConvert(sourceSrs, destSrs, aCoords) {
+                    /*
+                    sourceSRS   source      SRS as string      (example 'EPSG:4326')
+                    destSRS     destination SRS as string      (example 'EPSG:3003')
+                    aCoords     point coords couple to convert (example [1664156.618893799, 4800532.900722283])
+                    returns     converted point as {"x": xValue, "y": yValue}
+                    */
+                    var obSource = new proj4.Proj(sourceSrs),
+                        obDest = new proj4.Proj(destSrs),
+                        obResult = new proj4.toPoint(aCoords);
+                    return proj4(obSource, obDest, obResult);
+                }
+
+                // -- tests of function  coordConvert()
+
+                document.getElementById("messages").textContent += "\
+Test conversion from EPSG:4326 to EPSG:3003\n\
+-------------------------------------------\n\n\
+toscCenter converted to  (EPSG:3003):        " + (JSON.stringify(coordConvert('EPSG:4326',
+                    'EPSG:3003', [toscCenter[1], toscCenter[0]]))) + "\n\
+toscCenter (EPSG:3003):                      " + JSON.stringify(toscCenter3003) + "\n\n";
+
+                // result: {"x":1664156.618893799,"y":4800532.900722283,"z":-46.03558106068522}
+
+                document.getElementById("messages").textContent += "\
+Test conversion from EPSG:3003 to EPSG:4326\n\
+-------------------------------------------\n\
+toscCenter converted to  (EPSG:4326):        " + JSON.stringify(coordConvert('EPSG:3003', 'EPSG:4326',
+                    toscCenter3003)) + "\n" +
+                    "toscCenter (EPSG:4326): " + JSON.stringify(toscCenter) + "\n\n";
+                // result: {"x":11.024780506884182,"y":43.33959300109168}
+                
+                // -- tests of proj4Leaflet L.CRS.EPSG3003 unproject method
+
+                var toscCenterLatLngMin = L.CRS.EPSG3003.unproject({
+                    x: toscCenter3003[0],
+                    y: toscCenter3003[1]
+                }),
+                    toscCenter3003Max   = [toscCenter3003[0] + 0.1, toscCenter3003[1] + 0.1],
+                    toscCenterLatLngMax = L.CRS.EPSG3003.unproject({
+                        x: toscCenter3003Max[0],
+                        y: toscCenter3003Max[1]
+                    });
+
+                // -- tests of proj4Leaflet L.CRS.EPSG3003 project method
+
+                var newToscCenter3003Min = L.CRS.EPSG3003.project(toscCenterLatLngMin),
+                    newToscCenter3003Max = L.CRS.EPSG3003.project(toscCenterLatLngMax);
+                // -- print results
+
+                document.getElementById("messages").textContent += "\
+proj4leaflet: Test projected Coords  <-> latLng functions\n\
+---------------------------------------------------------\n\n\
+unproject function:\n\
+The inverse of project. Projects a 2D point into a geographical location.\n\
+Only accepts actual L.Point instances, not arrays.\n\
+Note that the projection instances do not inherit from Leafet's Class object, \n\
+and can't be instantiated. \n\
+Also, new classes can't inherit from them, and methods can't be added to them \n\
+with the include function\n\n\
+L.CRS.EPSG3003.unproject({\n\
+    x: toscCenter3003[0],\n\
+    y: toscCenter3003[1]\n\
+})\n\n\
+toscCenter (EPSG:3003):                         " + JSON.stringify(toscCenter3003)       + "\n\
+toscCenter (EPSG:3003) pan of [0.1 m., 0.1 m.]: " + JSON.stringify(toscCenter3003Max)    + "\n\
+toscCenter (lat. lng.):                         " + JSON.stringify(newToscCenter3003Min) + "\n\
+toscCenter (lat. lng.) pan of [0.1 m., 0.1 m.]: " + JSON.stringify(newToscCenter3003Max) + "\n\n\
+project function:\n\
+Projects geographical coordinates into a 2D point. \n\
+Only accepts actual L.LatLng instances, not arrays.\n\
+L.CRS.EPSG3003.project({lat:latValue,lng:lngValue})\n\n\
+toscCenter (lat. lng.) projected from epsg:3003:" + JSON.stringify(newToscCenter3003Min) + " \n\
+toscCenter (lat. lng.) pan of [0.1 m., 0.1 m.] projected from epsg:3003:\n\n" + 
+"                                               " + JSON.stringify(newToscCenter3003Max) + "\n\n" + 
+"L.CRS pbject contains the following predefined projections:\n\
+-----------------------------------------------------------\n\n\
+L.CRS.Earth     Serves as the base for CRS that are global such that they cover the earth.\n\
+                Can only be used as the base for other CRS and cannot be used directly, since\n\
+                it does not have a code, projection or transformation. distance() returns meters.\n\
+L.CRS.EPSG3395	Rarely used by some commercial tile providers. Uses Elliptical Mercator projection.\n\
+L.CRS.EPSG3857	The most common CRS for online maps, used by almost all free and commercial tile providers\n\
+                Uses Spherical Mercator projection. Set in by default in Maps crs option.\n\
+L.CRS.EPSG4326	A common CRS among GIS enthusiasts. Uses simple Equirectangular projection. \n\
+                Leaflet 1.0.x complies with the TMS coordinate scheme for EPSG:4326, which is \n" + 
+"                a breaking change from 0.7.x behaviour. If you are using a TileLayer with this CRS,\n\
+                ensure that there are two 256x256 pixel tiles covering the whole earth at zoom level zero,\n\
+                and that the tile coordinate origin is (-180,+90), or (-180,-90) for TileLayers \n\
+                with the tms option set.\n" + 
+"L.CRS.Base      Object that defines coordinate reference systems for projecting geographical points \n\
+                into pixel (screen) coordinates and back (and to coordinates in other units for WMS services).\n\
+                See spatial reference system. Leaflet defines the most usual CRSs by default. \n\
+                If you want to use a CRS not defined by default, take a look at the Proj4Leaflet plugin.\n" + 
+"                Note that the CRS instances do not inherit from Leafets Class object, and cant be instantiated.\n\
+                Also, new classes cant inherit from them, and methods cant be added to them\n\
+                with the include function.\n" +
+"L.CRS.Simple	A simple CRS that maps longitude and latitude into x and y directly. \n\
+                May be used for maps of flat surfaces (e.g. game maps).\n\
+                Note that the y axis should still be inverted (going from bottom to top).\n\
+                distance() returns simple euclidean distance.\n\n\
+----------------------\n\
+layout of L.CRS object\n\
+----------------------\n\n" +
+document.getElementsByTagName("script")[4].innerHTML; + "\n\n"
+                }
+        }
+        )();
+
+    </script>
+</head>
+<body>
+    <pre id="messages"></pre>
+</body>
+</html>
+<script>
+    var leaflet_CRS = {
+        "infinite": false,
+        "Earth": {
+            "infinite": false,
+            "wrapLng": [-180,
+            180],
+            "R": 6371000
+        },
+        "EPSG3395": {
+            "infinite": false,
+            "wrapLng": [-180,
+            180],
+            "R": 6371000,
+            "code": "EPSG:3395",
+            "projection": {
+                "R": 6378137,
+                "R_MINOR": 6356752.314245179,
+                "bounds": {
+                    "min": {
+                        "x": -20037508.34279,
+                        "y": -15496570.73972
+                    },
+                    "max": {
+                        "x": 20037508.34279,
+                        "y": 18764656.23138
+                    }
+                }
+            },
+            "transformation": {
+                "_a": 2.495320233665337e-8,
+                "_b": 0.5,
+                "_c": -2.495320233665337e-8,
+                "_d": 0.5
+            }
+        },
+        "EPSG3857": {
+            "infinite": false,
+            "wrapLng": [-180,
+            180],
+            "R": 6371000,
+            "code": "EPSG:3857",
+            "projection": {
+                "R": 6378137,
+                "MAX_LATITUDE": 85.0511287798,
+                "bounds": {
+                    "min": {
+                        "x": -20037508.342789244,
+                        "y": -20037508.342789244
+                    },
+                    "max": {
+                        "x": 20037508.342789244,
+                        "y": 20037508.342789244
+                    }
+                }
+            },
+            "transformation": {
+                "_a": 2.495320233665337e-8,
+                "_b": 0.5,
+                "_c": -2.495320233665337e-8,
+                "_d": 0.5
+            }
+        },
+        "EPSG900913": {
+            "infinite": false,
+            "wrapLng": [-180,
+            180],
+            "R": 6371000,
+            "code": "EPSG:900913",
+            "projection": {
+                "R": 6378137,
+                "MAX_LATITUDE": 85.0511287798,
+                "bounds": {
+                    "min": {
+                        "x": -20037508.342789244,
+                        "y": -20037508.342789244
+                    },
+                    "max": {
+                        "x": 20037508.342789244,
+                        "y": 20037508.342789244
+                    }
+                }
+            },
+            "transformation": {
+                "_a": 2.495320233665337e-8,
+                "_b": 0.5,
+                "_c": -2.495320233665337e-8,
+                "_d": 0.5
+            }
+        },
+        "EPSG4326": {
+            "infinite": false,
+            "wrapLng": [-180,
+            180],
+            "R": 6371000,
+            "code": "EPSG:4326",
+            "projection": {
+                "bounds": {
+                    "min": {
+                        "x": -180,
+                        "y": -90
+                    },
+                    "max": {
+                        "x": 180,
+                        "y": 90
+                    }
+                }
+            },
+            "transformation": {
+                "_a": 0.005555555555555556,
+                "_b": 1,
+                "_c": -0.005555555555555556,
+                "_d": 0.5
+            }
+        },
+        "Simple": {
+            "infinite": true,
+            "projection": {
+                "bounds": {
+                    "min": {
+                        "x": -180,
+                        "y": -90
+                    },
+                    "max": {
+                        "x": 180,
+                        "y": 90
+                    }
+                }
+            },
+            "transformation": {
+                "_a": 1,
+                "_b": 0,
+                "_c": -1,
+                "_d": 0
+            }
+        },
+        "EPSG3003": {
+            "projection": {
+                "_proj": {
+                    "oProj": {
+                        "projName": "tmerc",
+                        "lat0": 0,
+                        "long0": 0.15707963267948966,
+                        "k0": 0.9996,
+                        "x0": 1500000,
+                        "y0": 0,
+                        "ellps": "intl",
+                        "datum_params": [-104.1,
+                        -49.1,
+                        -9.9,
+                        0.971,
+                        -2.917,
+                        0.714,
+                        -11.68],
+                        "units": "m",
+                        "no_defs": true,
+                        "axis": "enu",
+                        "names": ["Transverse_Mercator",
+                        "Transverse Mercator",
+                        "tmerc"],
+                        "a": 6378388,
+                        "b": 6356911.9461279465,
+                        "rf": 297,
+                        "es": 0.006722670022333227,
+                        "e": 0.08199188997902919,
+                        "ep2": 0.006768170197224155,
+                        "datum": {
+                            "datum_type": 2,
+                            "datum_params": [-104.1,
+                            -49.1,
+                            -9.9,
+                            0.000004707540843573594,
+                            -0.000014142015077965163,
+                            0.000003461569683122087,
+                            0.99998832],
+                            "a": 6378388,
+                            "b": 6356911.9461279465,
+                            "es": 0.006722670022333227,
+                            "ep2": 0.006768170197224155
+                        },
+                        "en": [0.9983172080560443,
+                        0.005039878078377481,
+                        0.000021180853866295737,
+                        1.1075837467602343e-7,
+                        6.283155036917403e-10],
+                        "ml0": 0
+                    }
+                },
+                "_initHooksCalled": true
+            },
+            "options": {},
+            "code": "EPSG:3003",
+            "transformation": {
+                "_a": 1,
+                "_b": 0,
+                "_c": -1,
+                "_d": 0
+            },
+            "infinite": true,
+            "_initHooksCalled": true
+        }
+    };
+</script>

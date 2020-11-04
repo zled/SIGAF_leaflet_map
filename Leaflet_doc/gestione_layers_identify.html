@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+	<meta charset="utf-8" />
+    <style type="text/css">
+        body {font-family: Verdana; font-size: 12px;margin:5px}
+        .auto-style1 {
+            list-style-type: square;
+        }
+    </style>
+</head>
+<body>
+
+    <p>
+        La gestione delle operazioni di identify è basata sull&#39;handler <strong>onMapClick</strong> dell&#39;evento click su mappa e sull&#39;handler <strong>wfstClick</strong> dell&#39;evento click su layer. </p>
+    <p>
+        Il comportamento degli handler deve abilitare l&#39;identify di una sola feature per volta se non sono in corso operazioni di editing 
+        e nessuna feature vettoriale presente nella mappa è stata modificata con gli strumenti di editing/disegno.&nbsp; Possiamo quindi mantenere la modalità di identify di una sola feature per volta sinchè la proprietà <strong>editedFeatures.modified=0</strong>. Questa proprietà è valorizzata con il numero di feature modificate. E&#39; settata a false al termine del salvataggio delle feature modificate o quando il numero di feature modificate presenti nella mappa è 0.</p>
+    <p>
+        Durante le operazioni di editing di features, vale a dire global editing o draw di una sola feature, i vertici delle feature in corso di editing sono evidenziati con cerchietti e possono essere aggiunti, spostati (con o senza snap ai vertici circostanti) o cancellati con il mouse. In questo caso gli eventi del mouse devono essere usati soltanto dalle funzionalità di disegno (draw) del plugin leaflet.pm quindi i due handler <strong>onMapClick</strong> e <strong>wfstClick</strong> non devono effettuare niente che sia in contrasto con le operazioni di editing in corso. Le operazioni di editing del plugin leaflet.pm riguardano contemporaneamente tutte le features vettoriali presenti nella mappa ed appartenenti a layers abilitati all&#39;editing. </p>
+    <p>
+        Durante il disegno il click del mouse non provoca quindi selezione o deselezione di features. Quando invece nessuna modalità di disegno (draw, ritaglio, global editing, cancellazione feature) è attiva, allora il click del mouse su mappa provoca la selezione di ulteriori features tramite handler <strong>onMapClick</strong> mentre il click su features già selezionate ne provoca la deselezione tramite handler <strong>wfstClick</strong>. Se le feature non sono state modificate la deselezione è automatica mentre in caso contrario si richiede la confrema della deselezione con relativa perdità delle modifiche apportate.</p>
+    <p>
+        Quindi se non sono in corso operazioni di editing ma esistono features create o modificate da salvare, i due handler <strong>onMapClick</strong> e <strong>wfstClick</strong> devono servire soltanto a supporto della aggiunta o rimozione delle features vettoriali in corso di editing. Non è quindi forzata la selezione di una sola feature per volta.</p>
+    <p>
+        Descriviamo adesso il funzionamento della funzione di identify: </p>
+    <ol>
+        <li>la funzione <strong>non è eseguita se</strong> siamo in modalità di editing&nbsp; delle feature (<strong>pmStatus.isActive=true</strong>), in quanto il mouse è utilizzato per modificare le forme dei poligoni.</li>
+        <li>la funzione <strong>non è eseguita se</strong> l&#39;<strong>evento click su mappa deriva dal bubbling di un evento click su layer wfst</strong>. Questo allo scopo di evitare identify multipli di features tramite più requests temporalmente consecutive. Il gestore dell&#39;evento click su layer inserisce nell&#39;array aEventPath, l&#39;object_id wfs della feature wfst identificata. il Gestore del click su mappa, se trova elementi in aEventPath, svuota il vettore ed effettua return. </li>
+        <li><strong>al click su mappa</strong> <strong>si scandiscono</strong>, <strong>per livello decrescente</strong>,<strong> tutti i layer wfst previsti nella mappa</strong>, disponibili nell&#39;array objLayers.aLayers] e raccolti in aWfstLayers con il metodo objLayers.getLayerNamesByType(&quot;wfst&quot;,&quot;desc&quot;). Per ogni livello contenente un layer vettoriale tiled, il cui nome inizia con &#39;tiled_&#39; è previsto un corrispondente layer vettoriale wfst il cui nome inizia con &#39;wfst_&#39;. Entrambi i layer mostrano i dati della stessa tabella SQL Server di features. In questo progetto si tratta dei layer dei <strong>comuni, fogli, particelle</strong> e <strong>poligoni SIGAF</strong>.</li>
+    </ol>
+    <ul class="auto-style1">
+        <li>Per ogni layer scandito:<ol>
+            <li>
+                <div style="display:inline-block;width:800px">
+                    si procede, se non&nbsp; sono presenti features in corso di editing (numProperties(editedFeatures) &lt;= 1), a rimuovere i precedenti layer wfst (features geoJson) identificati con request getfeature wfs in modo da identificare un solo layer per volta. Il layer è inteso come gruppo di features wfs;</div>
+                <div style="display:inline-block;width:50px;border:1px solid black">
+                    ok</div>
+            </li>
+            <li>
+                <div style="display:inline-block;width:800px">
+                    si evita la successiva selezione wfs&nbsp; per i layer wfst i cui corrispondenti layer tiled sono stati deselezionati nel controllo layer. Questo si riconosce in quanto la proprietà _map del layer tiled è null.</div>
+                <div style="display:inline-block;width:50px;border:1px solid black">
+                    ok</div>
+
+            </li>
+            <li>
+                <div style="display:inline-block;width:800px">
+                    si procede poi, se il livello di zoom attuale è compreso fra il minimo e massimo stabiliti per il layer corrente, a:</div>
+                <div style="display:inline-block;width:50px;border:1px solid black">
+                    ok</div>
+                <ol>
+                    <li>
+                        <div style="display:inline-block;width:800px">
+                            costruire i filtri di selezione&nbsp; wfs basati su bounding box di 0.1 m. con punto sud ovest corrispondente al punto della mappa cliccato e/o codice del comune/sezione e codice foglio</div>
+                        <div style="display:inline-block;width:50px;border:1px solid black">ok</div>
+                    </li>
+                    <li>
+                        <div style="display:inline-block;width:800px">
+                            creare il layer wfst tramite query getfeature con il filtro calcolato in precedenza (funzione wfstLayerCreate()).</div>
+                        <div style="display:inline-block;width:50px;border:1px solid black">ok</div>
+                    </li>
+                </ol>
+            </li>
+            </ol>
+        </li>
+    </ul>
+    <p style="margin-left: 122px">
+        La funzione <strong>wfstLayerCreate</strong> effettua una richiesta wfs getFeature al server geografico con i filtri specificati nei parametri e riceve quindi dal server i dati geometrici ed alfanumerici delle features rintracciate. La richiesta è effettuata tramite il plugin Leaflet.wfst (metodo L.WFST()). E&#39; disponibile l&#39;evento load (attivato quando i dati scaricati da server geoServer sono stati ricevuti) del layer wfst. I dati delle feature selezionate sono disponibili nell&#39;evento e, unico parametro della funzione ed in particolare in e.responseText. </p>
+    <p style="margin-left: 122px">
+        La funzione handler (<strong>wfstLoad(e)</strong>) provvede, se esistono features scaricate, a collegare il layer (feature) alla mappa. Si collega alla mappa soltanto la prima feature identificata a partire dal layer di livello più alto.</p>
+    <p>
+        Attualmente mancano queste funzionalita:</p>
+    <ul>
+        <li><div style="display:inline-block;width:800px">valorizzare la proprietà part dell&#39;oggetto currentAdminLimits quando si identifica un layer contenente l&#39;attributo &#39;part&#39; (particelle e poligoni SIGAF).</div><div style="display:inline-block;width:50px;border:1px solid black">ok</div></li>
+        <li><div style="display:inline-block;width:800px">attivare il riempimento di un poligono quando selezionato per l&#39;editing. La selezione avviene se è già stata effettuata in precedenza una operazione di global editing su tutte le feature utilizzando il corrispondente pulsante della toolbar di editing.</div><div style="display:inline-block;width:50px;border:1px solid black">ok</div></li>
+        <li><div style="display:inline-block;width:800px">Attivare il riempimento di un poligono wfst selezionato in precedenza quando si passa in global editing</div><div style="display:inline-block;width:50px;border:1px solid black">ok</div></li>
+    </ul>
+    <p>
+        &nbsp;</p>
+    <p>
+        &nbsp;</p>
+
+</body>
+</html>

@@ -1,0 +1,35 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>analisi realizzazione deiting</title>
+	<meta charset="utf-8" />
+    <style>
+        body {font-family: Verdana; font-size: 12px;margin:5px}
+    </style>
+</head>
+<body>
+
+    <p>
+        Le funzionalità di editing sono già attive&nbsp;:</p>
+    <ul>
+        <li>il layer contenente le feature in corso di editing è raccolto nell&#39;oggetto <strong>workingLayer</strong>.</li>
+        <li>I poligoni in corso di editing sono raccolti nell&#39;oggetto <strong>editedFeatures</strong> che salva le proprietà <strong>feature</strong> (solo per il layer wfst identificato), <strong>_latlngs</strong>. La proprietà <strong>workingLayer._renderer._layers</strong> contiene la lista dei layers con poligoni in corso di editing.</li>
+        <li><strong>dispongo delle funzioni necessarie per convertire una feature&nbsp; nidificata da latLng in ogni altro sistema di coordinate disponibile, nel nostro caso EPSG:3003</strong>.</li>
+        <li><strong>non ho il livello di conoscenze adeguato per poter utilizzare il metodo save del plugin leaflet.wfst</strong>. Dovrei essere in grado di costruire la configurazione di layers in base ai dati prodotti da leaflet.PM. Attualmente valuto questo percorso troppo complesso e lungo per me.</li>
+        <li>Decido quindi di <strong>autocostruire le funzioni di editing interagendo direttamente con il database server</strong>. Questi i passi da seguire:<ul>
+            <li>definire il layer attuale e gli attributi attuali di editing. Questo non soltanto in base ad identify ma anche in base ad una selezione del layer corrente da editare. Ricavare, alla selezione del layer, i relativi attributi alfanumerici. </li>
+            <li>reperire il nome della tabella corrispondente al layer e salvarla in <strong>editedFeature[layer_id] </strong>in una proprietà da definire ...</li>
+            <li>permettere il salvataggio a fine editing di un singolo poligono modificato con Leaflet.Pm.</li>
+            <li>Aggiungere un <strong>controllo di selezione dei layers</strong>, oltre al controllo di visualizzazione dei layers.</li>
+            <li><span><strong>identificare se il poligono WFST identificato (qualora esista) è stato editato</strong>.</span></li>
+            <li>convertire le coordinate da <strong>editedFeature[layer_id]._latlngs</strong> in coordinate proiettate EPSG:3003 e salvarle in <strong>editedFeature[layer_id][&#39;feature&#39;].geometry.coordinates</strong></li>
+            <li>convertire le coordinare geojson in formato WKT</li>
+            <li>costruire il modulo di salvataggio su server sql</li>
+            </ul>
+        </li>
+    </ul>
+    <p>
+        &nbsp;</p>
+
+</body>
+</html>
