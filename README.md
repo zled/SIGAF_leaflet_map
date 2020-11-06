@@ -1,5 +1,6 @@
 # SIGAF_leaflet_map
-SIGAF (Sistema Informativo Gestione Attività Forestali) (translated: Forestry Activities Management Information System) leaflet interactive map 
+SIGAF (Sistema Informativo Gestione Attività Forestali) (translated: Forestry Activities Management Information System) leaflet interactive map
+
 This is a work in progress GIS map project, with advanced editing capabilities enabled.
 The map contains:
 three raster satellite ortophoto layers from  local Source, Google Maps, mapBox OSM Satellite, 
